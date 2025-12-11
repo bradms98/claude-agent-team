@@ -21,6 +21,14 @@ AGENTS_DIR="$HOME/.claude/agents"
 STASH_DIR="$HOME/.claude/agents.stash"
 ACTIVE_MARKER="$AGENTS_DIR/.active-team"
 
+# Validate that the agents directory exists
+if [ ! -d "$SCRIPT_DIR/agents/core" ] || [ ! -d "$SCRIPT_DIR/agents/specialists" ]; then
+    echo -e "${RED}Error: agents/core or agents/specialists directory not found.${NC}"
+    echo "Expected location: $SCRIPT_DIR/agents/"
+    echo "Please ensure the repository is complete."
+    exit 1
+fi
+
 echo -e "${CYAN}Claude Agent Team - Activate${NC}"
 echo "=============================="
 echo ""
