@@ -1,7 +1,8 @@
 #!/bin/bash
 
 # Claude Agent Team - Deactivate Script
-# Removes this team's symlinks and restores stashed agents
+# Removes this team's agent files and restores stashed agents
+# (Uses marker comments to identify files installed by this team)
 
 set -e
 
@@ -49,19 +50,36 @@ else
     exit 0
 fi
 
-# Remove symlinks that point to this repo
+# Remove files that were installed by this team (check marker comment or symlink)
 REMOVED=0
 shopt -s nullglob
 for agent in "$AGENTS_DIR"/*.md; do
+    should_remove=false
+
+    # Check for HTML marker comment (legacy method, no frontmatter)
+    if [ -f "$agent" ] && grep -q "^<!-- installed-from: $SCRIPT_DIR -->" "$agent" 2>/dev/null; then
+        should_remove=true
+    fi
+
+    # Check for YAML comment marker (new method, with frontmatter)
+    if [ -f "$agent" ] && grep -q "^# installed-from: $SCRIPT_DIR$" "$agent" 2>/dev/null; then
+        should_remove=true
+    fi
+
+    # Also check for symlinks (legacy support)
     if [ -L "$agent" ]; then
         link_target="$(readlink "$agent")"
         if [[ "$link_target" == "$SCRIPT_DIR"* ]]; then
-            rm "$agent"
-            if [ "$QUIET" = false ]; then
-                echo -e "  ${RED}✗${NC} Removed: $(basename "$agent")"
-            fi
-            REMOVED=$((REMOVED + 1))
+            should_remove=true
         fi
+    fi
+
+    if [ "$should_remove" = true ]; then
+        rm "$agent"
+        if [ "$QUIET" = false ]; then
+            echo -e "  ${RED}✗${NC} Removed: $(basename "$agent")"
+        fi
+        REMOVED=$((REMOVED + 1))
     fi
 done
 

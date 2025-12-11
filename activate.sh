@@ -1,7 +1,8 @@
 #!/bin/bash
 
 # Claude Agent Team - Activate Script
-# Activates this agent team by symlinking to ~/.claude/agents/
+# Activates this agent team by copying agent files to ~/.claude/agents/
+# (Symlinks don't work due to Claude Code bug - see GitHub issues #764, #4626)
 # Any existing agents are moved to ~/.claude/agents.stash/
 
 set -e
@@ -49,18 +50,22 @@ fi
 mkdir -p "$AGENTS_DIR"
 mkdir -p "$STASH_DIR"
 
-# Stash any existing agents that aren't symlinks from this team
+# Stash any existing agents that aren't from this team
 echo "Checking for existing agents to stash..."
 STASHED=0
 shopt -s nullglob
 for agent in "$AGENTS_DIR"/*.md; do
     if [ -f "$agent" ]; then
         name="$(basename "$agent")"
-        # Check if it's a symlink pointing to this repo
+        # Check if this file was installed by this team (has our marker comment)
+        if grep -q "^<!-- installed-from: $SCRIPT_DIR -->" "$agent" 2>/dev/null; then
+            # Already our file, skip
+            continue
+        fi
+        # Also skip symlinks pointing to this repo (legacy support)
         if [ -L "$agent" ]; then
             link_target="$(readlink "$agent")"
             if [[ "$link_target" == "$SCRIPT_DIR"* ]]; then
-                # Already our symlink, skip
                 continue
             fi
         fi
@@ -76,16 +81,39 @@ if [ $STASHED -gt 0 ]; then
     echo ""
 fi
 
-# Function to create symlink
-create_symlink() {
+# Function to copy agent file with source marker
+install_agent() {
     local source="$1"
     local target="$2"
     local name="$(basename "$source")"
 
-    if [ -L "$target" ]; then
+    # Remove existing file (symlink or regular file)
+    if [ -e "$target" ] || [ -L "$target" ]; then
         rm "$target"
     fi
-    ln -s "$source" "$target"
+
+    # Check if file has YAML frontmatter (starts with ---)
+    if head -1 "$source" | grep -q "^---"; then
+        # Insert marker after the closing --- of frontmatter
+        # Find line number of second --- (closing frontmatter)
+        local close_line=$(awk '/^---/{n++; if(n==2) {print NR; exit}}' "$source")
+        if [ -n "$close_line" ]; then
+            # Copy frontmatter, add marker as YAML comment, then rest of file
+            head -n "$close_line" "$source" > "$target"
+            echo "# installed-from: $SCRIPT_DIR" >> "$target"
+            tail -n +"$((close_line + 1))" "$source" >> "$target"
+        else
+            # Fallback: just copy the file if we can't find closing ---
+            cp "$source" "$target"
+        fi
+    else
+        # No frontmatter: prepend HTML comment marker
+        {
+            echo "<!-- installed-from: $SCRIPT_DIR -->"
+            cat "$source"
+        } > "$target"
+    fi
+
     echo -e "  ${GREEN}✓${NC} $name"
 }
 
@@ -94,7 +122,7 @@ echo "Activating core agents..."
 for agent in "$SCRIPT_DIR/agents/core"/*.md; do
     if [ -f "$agent" ]; then
         name="$(basename "$agent")"
-        create_symlink "$agent" "$AGENTS_DIR/$name"
+        install_agent "$agent" "$AGENTS_DIR/$name"
     fi
 done
 
@@ -104,7 +132,7 @@ echo "Activating specialist agents..."
 for agent in "$SCRIPT_DIR/agents/specialists"/*.md; do
     if [ -f "$agent" ]; then
         name="$(basename "$agent")"
-        create_symlink "$agent" "$AGENTS_DIR/$name"
+        install_agent "$agent" "$AGENTS_DIR/$name"
     fi
 done
 
