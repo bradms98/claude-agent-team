@@ -117,7 +117,8 @@ fi
 install_agent() {
     local source="$1"
     local target="$2"
-    local name="$(basename "$source")"
+    local name
+    name="$(basename "$source")"
 
     # Remove existing file (symlink or regular file)
     if [ -e "$target" ] || [ -L "$target" ]; then
@@ -128,7 +129,8 @@ install_agent() {
     if head -1 "$source" | grep -q "^---"; then
         # Insert marker after the closing --- of frontmatter
         # Find line number of second --- (closing frontmatter)
-        local close_line=$(awk '/^---/{n++; if(n==2) {print NR; exit}}' "$source")
+        local close_line
+        close_line=$(awk '/^---/{n++; if(n==2) {print NR; exit}}' "$source")
         if [ -n "$close_line" ]; then
             # Copy frontmatter, add marker as YAML comment, then rest of file
             head -n "$close_line" "$source" > "$target"
