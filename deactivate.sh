@@ -51,7 +51,8 @@ fi
 
 # Remove symlinks that point to this repo
 REMOVED=0
-for agent in "$AGENTS_DIR"/*.md 2>/dev/null; do
+shopt -s nullglob
+for agent in "$AGENTS_DIR"/*.md; do
     if [ -L "$agent" ]; then
         link_target="$(readlink "$agent")"
         if [[ "$link_target" == "$SCRIPT_DIR"* ]]; then
@@ -79,7 +80,7 @@ if [ -d "$STASH_DIR" ] && [ "$(ls -A "$STASH_DIR" 2>/dev/null)" ]; then
         echo "Restoring stashed agents..."
     fi
     RESTORED=0
-    for agent in "$STASH_DIR"/*.md 2>/dev/null; do
+    for agent in "$STASH_DIR"/*.md; do
         if [ -f "$agent" ]; then
             name="$(basename "$agent")"
             mv "$agent" "$AGENTS_DIR/$name"
@@ -100,9 +101,12 @@ if [ "$QUIET" = false ]; then
     echo ""
 
     # Show remaining agents if any
-    if ls "$AGENTS_DIR"/*.md 1>/dev/null 2>&1; then
+    remaining=("$AGENTS_DIR"/*.md)
+    if [ ${#remaining[@]} -gt 0 ] && [ -e "${remaining[0]}" ]; then
         echo "Remaining agents:"
-        ls "$AGENTS_DIR"/*.md 2>/dev/null | xargs -n1 basename | sed 's/^/  /'
+        for agent in "${remaining[@]}"; do
+            echo "  $(basename "$agent")"
+        done
     else
         echo "No agents currently active."
     fi

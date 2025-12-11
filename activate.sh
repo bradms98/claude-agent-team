@@ -52,7 +52,8 @@ mkdir -p "$STASH_DIR"
 # Stash any existing agents that aren't symlinks from this team
 echo "Checking for existing agents to stash..."
 STASHED=0
-for agent in "$AGENTS_DIR"/*.md 2>/dev/null; do
+shopt -s nullglob
+for agent in "$AGENTS_DIR"/*.md; do
     if [ -f "$agent" ]; then
         name="$(basename "$agent")"
         # Check if it's a symlink pointing to this repo
@@ -115,7 +116,9 @@ echo ""
 echo -e "${GREEN}Team '$TEAM_NAME' is now active!${NC}"
 echo ""
 echo "Active agents:"
-ls "$AGENTS_DIR"/*.md 2>/dev/null | xargs -n1 basename | sed 's/^/  /'
+for agent in "$AGENTS_DIR"/*.md; do
+    echo "  $(basename "$agent")"
+done
 
 echo ""
 echo "To deactivate:"
