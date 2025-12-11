@@ -30,7 +30,7 @@ A modular team of specialized AI agents that work together on complex software p
 
 ```bash
 # Clone the repository
-git clone https://github.com/youruser/claude-agent-team.git
+git clone https://github.com/bradms98/claude-agent-team.git
 
 # Activate this team
 cd claude-agent-team
