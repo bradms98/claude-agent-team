@@ -216,6 +216,10 @@ claude-agent-team/
 └── examples/              # (Future: usage examples)
 ```
 
+## Roadmap
+
+- [ ] **Agent Skills** - Introduce loadable skills for specialized agents using Claude's skills system. Skills would provide domain expertise (frameworks, APIs, libraries) that agents can load on demand. For example, a "React 18" skill for the Engineer, or an "AWS Security" skill for the Security agent.
+
 ## Contributing
 
 1. Fork the repository
