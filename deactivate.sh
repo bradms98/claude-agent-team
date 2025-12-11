@@ -1,10 +1,27 @@
 #!/bin/bash
+# shellcheck shell=bash
 
 # Claude Agent Team - Deactivate Script
 # Removes this team's agent files and restores stashed agents
 # (Uses marker comments to identify files installed by this team)
 
-set -e
+set -euo pipefail
+
+# Help flag
+if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
+    echo "Usage: deactivate.sh [--quiet]"
+    echo ""
+    echo "Deactivates this agent team by removing its files from ~/.claude/agents/"
+    echo "Any previously stashed agents are restored from ~/.claude/agents.stash/"
+    echo ""
+    echo "Options:"
+    echo "  --quiet    Suppress output (used for internal calls)"
+    echo "  --help     Show this help message"
+    echo ""
+    echo "Exit codes:"
+    echo "  0  Success (or team not active)"
+    exit 0
+fi
 
 # Colors for output
 RED='\033[0;31m'
@@ -21,7 +38,7 @@ STASH_DIR="$HOME/.claude/agents.stash"
 ACTIVE_MARKER="$AGENTS_DIR/.active-team"
 QUIET=false
 
-if [ "$1" = "--quiet" ]; then
+if [ "${1:-}" = "--quiet" ]; then
     QUIET=true
 fi
 

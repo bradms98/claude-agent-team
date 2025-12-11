@@ -1,11 +1,29 @@
 #!/bin/bash
+# shellcheck shell=bash
 
 # Claude Agent Team - Activate Script
 # Activates this agent team by copying agent files to ~/.claude/agents/
 # (Symlinks don't work due to Claude Code bug - see GitHub issues #764, #4626)
 # Any existing agents are moved to ~/.claude/agents.stash/
 
-set -e
+set -euo pipefail
+
+# Help flag
+if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
+    echo "Usage: activate.sh [--force]"
+    echo ""
+    echo "Activates this agent team by copying agent files to ~/.claude/agents/"
+    echo "Any existing agents are stashed to ~/.claude/agents.stash/"
+    echo ""
+    echo "Options:"
+    echo "  --force    Deactivate any currently active team first"
+    echo "  --help     Show this help message"
+    echo ""
+    echo "Exit codes:"
+    echo "  0  Success"
+    echo "  1  Error (missing directories, another team active, etc.)"
+    exit 0
+fi
 
 # Colors for output
 RED='\033[0;31m'
@@ -45,7 +63,7 @@ if [ -f "$ACTIVE_MARKER" ]; then
     fi
     echo -e "${YELLOW}Another team is currently active: $(basename "$CURRENT_TEAM")${NC}"
     echo "Run 'deactivate.sh' in that team's directory first, or use --force"
-    if [ "$1" != "--force" ]; then
+    if [ "${1:-}" != "--force" ]; then
         exit 1
     fi
     echo -e "${YELLOW}Force flag detected, deactivating current team...${NC}"
@@ -55,8 +73,14 @@ if [ -f "$ACTIVE_MARKER" ]; then
 fi
 
 # Create directories if they don't exist
-mkdir -p "$AGENTS_DIR"
-mkdir -p "$STASH_DIR"
+if ! mkdir -p "$AGENTS_DIR"; then
+    echo -e "${RED}Error: Failed to create $AGENTS_DIR${NC}" >&2
+    exit 1
+fi
+if ! mkdir -p "$STASH_DIR"; then
+    echo -e "${RED}Error: Failed to create $STASH_DIR${NC}" >&2
+    exit 1
+fi
 
 # Stash any existing agents that aren't from this team
 echo "Checking for existing agents to stash..."
